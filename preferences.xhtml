@@ -1,0 +1,78 @@
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml"
+      onload="ArchNotePrefs.init();"
+      class="arch-note-preferences">
+  <groupbox>
+    <caption label="Arch Note Zotero DeepSeek"/>
+    <checkbox id="arch-note-enabled" label="Enable plugin"/>
+    <checkbox id="arch-note-auto-run" label="Generate a guide automatically when new papers are added"/>
+    <checkbox id="arch-note-use-skill" label="Use arch-paper-reading-skill via arch-note CLI"/>
+    <checkbox id="arch-note-fallback-internal" label="Fall back to the built-in prompt if arch-note fails"/>
+    <checkbox id="arch-note-keep-artifacts" label="Keep temporary skill prompt files for debugging"/>
+    <checkbox id="arch-note-force-index" label="Ask Zotero to index PDF text before generation"/>
+
+    <html:div style="display: grid; grid-template-columns: 160px minmax(260px, 1fr); gap: 8px 12px; margin-top: 14px; align-items: center;">
+      <html:label for="arch-note-skill-command">arch-note command</html:label>
+      <html:input id="arch-note-skill-command" type="text"/>
+
+      <html:label for="arch-note-skill-db">Skill corpus DB</html:label>
+      <html:input id="arch-note-skill-db" type="text" placeholder="/path/to/data/indexes/arch_corpus.sqlite"/>
+
+      <html:label for="arch-note-skill-format">Skill format</html:label>
+      <html:select id="arch-note-skill-format">
+        <html:option value="detailed">Detailed</html:option>
+        <html:option value="group_meeting">Group meeting</html:option>
+        <html:option value="uw_review">UW review</html:option>
+        <html:option value="cmu_summary">CMU summary</html:option>
+        <html:option value="slide_outline">Slide outline</html:option>
+        <html:option value="brief">Brief</html:option>
+      </html:select>
+
+      <html:label for="arch-note-skill-top-k">Skill top-k</html:label>
+      <html:input id="arch-note-skill-top-k" type="number" min="0" step="1"/>
+
+      <html:label for="arch-note-skill-timeout">Skill timeout seconds</html:label>
+      <html:input id="arch-note-skill-timeout" type="number" min="10" step="10"/>
+
+      <html:label for="arch-note-api-key">DeepSeek API key</html:label>
+      <html:input id="arch-note-api-key" type="password" autocomplete="off"/>
+
+      <html:label for="arch-note-base-url">Base URL</html:label>
+      <html:input id="arch-note-base-url" type="text"/>
+
+      <html:label for="arch-note-model">Model</html:label>
+      <html:input id="arch-note-model" type="text"/>
+
+      <html:label for="arch-note-style">Style</html:label>
+      <html:select id="arch-note-style">
+        <html:option value="group_meeting">Group meeting</html:option>
+        <html:option value="cmu_summary">CMU summary</html:option>
+        <html:option value="uw_review">UW review</html:option>
+        <html:option value="lecture_slide">Lecture slide</html:option>
+      </html:select>
+
+      <html:label for="arch-note-language">Language</html:label>
+      <html:select id="arch-note-language">
+        <html:option value="zh-CN">Chinese</html:option>
+        <html:option value="en">English</html:option>
+      </html:select>
+
+      <html:label for="arch-note-max-chars">Max paper chars</html:label>
+      <html:input id="arch-note-max-chars" type="number" min="2000" step="1000"/>
+
+      <html:label for="arch-note-max-tokens">Max output tokens</html:label>
+      <html:input id="arch-note-max-tokens" type="number" min="512" step="256"/>
+
+      <html:label for="arch-note-delay">Auto-run delay seconds</html:label>
+      <html:input id="arch-note-delay" type="number" min="0" step="1"/>
+    </html:div>
+
+    <hbox style="margin-top: 14px;">
+      <button label="Save" oncommand="ArchNotePrefs.save();"/>
+    </hbox>
+
+    <html:p style="max-width: 720px; color: var(--fill-secondary, #666);">
+      The API key is stored in Zotero preferences on this machine. Use a restricted DeepSeek key if possible.
+    </html:p>
+  </groupbox>
+</vbox>

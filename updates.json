@@ -1,0 +1,19 @@
+{
+  "addons": {
+    "arch-note-zotero-deepseek@example.com": {
+      "updates": [
+        {
+          "version": "0.1.5",
+          "update_link": "https://github.com/fanyuchen/arch-note-zotero-deepseek/releases/download/v0.1.5/arch-note-zotero-deepseek-0.1.5.xpi",
+          "update_hash": "sha256:56adca9c0ed316559fff03445d82751af6891b061fb3b0b9425d4dbaa8cace46",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "8.0.1",
+              "strict_max_version": "10.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

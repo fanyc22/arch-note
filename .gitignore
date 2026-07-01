@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.xpi
+.DS_Store
+coverage/
+
+# Local compatibility/debug bisection fixtures.
+debug/
+scripts/build-debug-xpi.mjs

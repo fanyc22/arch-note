@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "Arch Note Zotero DeepSeek",
+  "version": "0.1.5",
+  "description": "Automatically generate architecture-paper reading guide notes in Zotero using the DeepSeek API.",
+  "homepage_url": "https://github.com/fanyuchen/arch-note-zotero-deepseek",
+  "icons": {
+    "48": "chrome/content/icon.svg",
+    "96": "chrome/content/icon.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "arch-note-zotero-deepseek@example.com",
+      "update_url": "https://raw.githubusercontent.com/fanyuchen/arch-note-zotero-deepseek/main/updates.json",
+      "strict_min_version": "8.0.1",
+      "strict_max_version": "10.*"
+    }
+  }
+}
