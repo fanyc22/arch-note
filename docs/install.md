@@ -9,7 +9,7 @@
 2. Open Zotero.
 3. Go to `Tools > Add-ons`.
 4. Choose `Install Add-on From File...`.
-5. Select `dist/arch-note-zotero-deepseek-0.1.5.xpi`.
+5. Select `dist/arch-note-zotero-deepseek-0.1.6.xpi`.
 6. Restart Zotero if prompted.
 7. Open Zotero Preferences and configure:
 

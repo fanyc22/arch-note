@@ -1,6 +1,6 @@
 # Arch Note Zotero DeepSeek
 
-[![CI](https://github.com/fanyuchen/arch-note-zotero-deepseek/actions/workflows/ci.yml/badge.svg)](https://github.com/fanyuchen/arch-note-zotero-deepseek/actions/workflows/ci.yml)
+[![CI](https://github.com/fanyc22/arch-note/actions/workflows/ci.yml/badge.svg)](https://github.com/fanyc22/arch-note/actions/workflows/ci.yml)
 [![Zotero](https://img.shields.io/badge/Zotero-8.0.1%20to%2010.*-CC2936)](https://www.zotero.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -59,7 +59,7 @@ npm run build
 Then install:
 
 ```text
-dist/arch-note-zotero-deepseek-0.1.5.xpi
+dist/arch-note-zotero-deepseek-0.1.6.xpi
 ```
 
 ## Configuration
@@ -166,7 +166,7 @@ The default Chinese guide is optimized for architecture papers and normally incl
 
 ### The Tools menu entries do not appear
 
-Make sure the installed add-on is version `0.1.5` or later. Older local builds could install successfully but fail to register Zotero UI surfaces.
+Make sure the installed add-on is version `0.1.6` or later. Older local builds could install successfully but fail to register Zotero UI surfaces.
 
 ### Zotero says the XPI is incompatible
 

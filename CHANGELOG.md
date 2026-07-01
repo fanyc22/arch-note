@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+- Point GitHub metadata, release links, and Zotero update manifest URLs at `fanyc22/arch-note`.
+- Add the Chinese README referenced from the main README.
+
 ## 0.1.5
 
 - Register Zotero chrome resources during bootstrap startup.

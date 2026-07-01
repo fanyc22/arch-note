@@ -17,7 +17,7 @@ test("addToWindow injects the Arch Note Tools menu actions", () => {
   const api = require("../chrome/content/arch-note-zotero.js");
   api.init({
     pluginID: "arch-note-zotero-deepseek@example.com",
-    version: "0.1.5",
+    version: "0.1.6",
     rootURI: "jar:file:///test!/",
     prompt: {},
     libraryScan: {},

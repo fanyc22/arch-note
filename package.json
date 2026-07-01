@@ -1,17 +1,17 @@
 {
   "name": "arch-note-zotero-deepseek",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Zotero plugin that generates architecture-paper reading guides with the DeepSeek API.",
   "type": "commonjs",
   "license": "MIT",
-  "homepage": "https://github.com/fanyuchen/arch-note-zotero-deepseek#readme",
+  "homepage": "https://github.com/fanyc22/arch-note#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fanyuchen/arch-note-zotero-deepseek.git"
+    "url": "git+https://github.com/fanyc22/arch-note.git"
   },
   "bugs": {
-    "url": "https://github.com/fanyuchen/arch-note-zotero-deepseek/issues"
+    "url": "https://github.com/fanyc22/arch-note/issues"
   },
   "keywords": [
     "zotero",
