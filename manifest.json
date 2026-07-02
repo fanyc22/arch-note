@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Arch Note Zotero DeepSeek",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Automatically generate architecture-paper reading guide notes in Zotero using the DeepSeek API.",
   "homepage_url": "https://github.com/fanyc22/arch-note",
   "icons": {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8
+
+- No functional changes.
+- Version-only release for testing Zotero automatic updates.
+
 ## 0.1.7
 
 - Add a Tools menu action to generate missing Arch Notes for all eligible papers in the selected collection.

@@ -61,7 +61,7 @@ npm run build
 Then install:
 
 ```text
-dist/arch-note-zotero-deepseek-0.1.7.xpi
+dist/arch-note-zotero-deepseek-0.1.8.xpi
 ```
 
 ## Configuration
@@ -177,7 +177,7 @@ The default Chinese guide is optimized for architecture papers and normally incl
 
 ### The Tools menu entries do not appear
 
-Make sure the installed add-on is version `0.1.7` or later. Older local builds could install successfully but fail to register Zotero UI surfaces.
+Make sure the installed add-on is version `0.1.8` or later. Older local builds could install successfully but fail to register Zotero UI surfaces.
 
 ### Zotero says the XPI is incompatible
 
