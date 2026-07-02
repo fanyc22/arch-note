@@ -13,6 +13,7 @@
   const PREF_PREFIX = "extensions.arch-note-zotero.";
   const MENU_ID = "arch-note-zotero-run-selected";
   const BATCH_MENU_ID = "arch-note-zotero-run-missing-library";
+  const COLLECTION_BATCH_MENU_ID = "arch-note-zotero-run-missing-collection";
   const SETTINGS_MENU_ID = "arch-note-zotero-settings";
 
   const state = {
@@ -21,6 +22,7 @@
     rootURI: null,
     prompt: null,
     libraryScan: null,
+    progress: null,
     skillRunner: null,
     deepSeek: null,
     markdown: null,
@@ -55,6 +57,11 @@
 
   function getTagNames(item) {
     return (item.getTags ? item.getTags() : []).map((tag) => tag.tag || tag.name || String(tag));
+  }
+
+  function getItemTitle(item) {
+    const title = item?.getField ? item.getField("title") : item?.title;
+    return title || `item ${item?.id || ""}`.trim();
   }
 
   async function saveItem(item) {
@@ -259,11 +266,11 @@
     const failedTag = getPref("failedTag", "arch-note:failed");
     if (opts.skipIfReportExists && await findExistingReportNote(item)) {
       log(`skipping item ${item.id}; arch-note report already exists`);
-      return;
+      return "skipped";
     }
     if (!opts.force && getTagNames(item).includes(doneTag)) {
       log(`skipping item ${item.id}; ${doneTag} is already present`);
-      return;
+      return "skipped";
     }
 
     const apiKey = String(getPref("apiKey", "") || "").trim();
@@ -342,6 +349,67 @@
     });
     await markItem(item, doneTag, failedTag);
     log(`generated report for item ${item.id}`);
+    return "success";
+  }
+
+  function createBatch(win, headline, total) {
+    const reporter = state.progress?.createProgressReporter
+      ? state.progress.createProgressReporter({ Zotero, win, log }, { headline, total })
+      : null;
+    return {
+      total,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      reporter
+    };
+  }
+
+  function batchSnapshot(batch, extra) {
+    return {
+      total: batch.total,
+      completed: batch.completed,
+      succeeded: batch.succeeded,
+      failed: batch.failed,
+      skipped: batch.skipped,
+      ...(extra || {})
+    };
+  }
+
+  function startBatchItem(batch, item) {
+    if (!batch?.reporter) {
+      return;
+    }
+    batch.reporter.update(batchSnapshot(batch, {
+      phase: "processing",
+      currentTitle: getItemTitle(item)
+    }));
+  }
+
+  function finishBatchItem(batch, item, status) {
+    if (!batch) {
+      return;
+    }
+    batch.completed += 1;
+    if (status === "success") {
+      batch.succeeded += 1;
+    } else if (status === "failed") {
+      batch.failed += 1;
+    } else {
+      batch.skipped += 1;
+    }
+    if (batch.reporter) {
+      const snapshot = batchSnapshot(batch, {
+        phase: batch.completed >= batch.total ? "complete" : "processing",
+        currentTitle: getItemTitle(item)
+      });
+      if (batch.completed >= batch.total) {
+        batch.reporter.finish(snapshot);
+      } else {
+        batch.reporter.update(snapshot);
+      }
+    }
   }
 
   async function drainQueue() {
@@ -351,24 +419,33 @@
     state.processing = true;
     try {
       while (state.queue.length) {
-        const { itemID, options } = state.queue.shift();
+        const { itemID, options, batch } = state.queue.shift();
         state.queuedItemIDs.delete(itemID);
         state.processingItemIDs.add(itemID);
-        const item = await Zotero.Items.getAsync(itemID);
-        const regularItem = await resolveRegularItem(item);
+        let item = null;
+        let regularItem = null;
+        let status = "skipped";
         try {
+          item = await Zotero.Items.getAsync(itemID);
+          regularItem = await resolveRegularItem(item);
           if (regularItem) {
-            await processItem(regularItem, options);
+            startBatchItem(batch, regularItem);
+            status = await processItem(regularItem, options) || "success";
           }
         } catch (error) {
-          log(`failed to process item ${regularItem.id}: ${error.stack || error.message}`);
+          status = "failed";
+          const failedID = regularItem?.id || itemID;
+          log(`failed to process item ${failedID}: ${error.stack || error.message}`);
           try {
-            await markItem(regularItem, getPref("failedTag", "arch-note:failed"), null);
+            if (regularItem) {
+              await markItem(regularItem, getPref("failedTag", "arch-note:failed"), null);
+            }
           } catch (tagError) {
-            log(`failed to tag item ${regularItem.id}: ${tagError.message}`);
+            log(`failed to tag item ${failedID}: ${tagError.message}`);
           }
         } finally {
           state.processingItemIDs.delete(itemID);
+          finishBatchItem(batch, regularItem || item || { id: itemID, title: `item ${itemID}` }, status);
         }
       }
     } finally {
@@ -376,13 +453,55 @@
     }
   }
 
-  function enqueue(itemID, options) {
+  function queueItem(itemID, options, batch) {
     if (state.queuedItemIDs.has(itemID) || state.processingItemIDs.has(itemID)) {
-      return;
+      return false;
     }
     state.queuedItemIDs.add(itemID);
-    state.queue.push({ itemID, options: options || {} });
+    state.queue.push({ itemID, options: options || {}, batch: batch || null });
+    return true;
+  }
+
+  function enqueue(itemID, options, batch) {
+    const queued = queueItem(itemID, options, batch);
+    if (!queued) {
+      return false;
+    }
     drainQueue();
+    return true;
+  }
+
+  function enqueueBatch(win, items, options, headline) {
+    const unique = [];
+    const seen = new Set();
+    for (const item of items || []) {
+      if (!item?.id || seen.has(item.id)) {
+        continue;
+      }
+      seen.add(item.id);
+      if (!state.queuedItemIDs.has(item.id) && !state.processingItemIDs.has(item.id)) {
+        unique.push(item);
+      }
+    }
+    if (!unique.length) {
+      return { queued: 0, progressVisible: false };
+    }
+
+    const batch = createBatch(win, headline, unique.length);
+    if (batch.reporter) {
+      batch.reporter.update(batchSnapshot(batch, { phase: "queued" }));
+    }
+    let queued = 0;
+    for (const item of unique) {
+      if (queueItem(item.id, options, batch)) {
+        queued += 1;
+      }
+    }
+    drainQueue();
+    return {
+      queued,
+      progressVisible: Boolean(batch.reporter?.isVisible && batch.reporter.isVisible())
+    };
   }
 
   function scheduleItemID(itemID, options) {
@@ -426,11 +545,22 @@
       win.alert("Select one or more Zotero items first.");
       return;
     }
+    const regularItems = [];
     for (const item of selected) {
       const regularItem = await resolveRegularItem(item);
       if (regularItem) {
-        enqueue(regularItem.id, { ...(options || {}), force: true, reason: "manual" });
+        regularItems.push(regularItem);
       }
+    }
+    if (!regularItems.length) {
+      win.alert("No eligible paper items were selected.");
+      return;
+    }
+    const result = enqueueBatch(win, regularItems, { ...(options || {}), force: true, reason: "manual" }, "Arch Note: selected items");
+    if (!result.queued) {
+      win.alert("The selected paper(s) are already queued or processing.");
+    } else if (!result.progressVisible) {
+      win.alert(`Queued ${result.queued} paper(s). Zotero will generate reports sequentially in the background.`);
     }
   }
 
@@ -444,10 +574,124 @@
     return Zotero.Libraries.userLibraryID;
   }
 
+  function normalizeObjectID(value) {
+    if (value && typeof value === "object") {
+      return normalizeObjectID(value.id || value.collectionID);
+    }
+    const id = Number(value);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }
+
+  async function resolveCollection(value) {
+    if (!value) {
+      return null;
+    }
+    if (value.ref) {
+      return resolveCollection(value.ref);
+    }
+    if (value.collection) {
+      return resolveCollection(value.collection);
+    }
+    const id = normalizeObjectID(value);
+    if (value && typeof value === "object" && id && value.libraryID !== undefined) {
+      return value;
+    }
+    if (id && Zotero.Collections?.get) {
+      return Zotero.Collections.get(id);
+    }
+    return null;
+  }
+
+  async function getSelectedCollection(win) {
+    const pane = win.ZoteroPane;
+    const view = pane?.collectionsView;
+    const probes = [
+      () => pane?.getSelectedCollection?.(),
+      () => pane?.getSelectedCollectionID?.(),
+      () => view?.getSelectedCollection?.(),
+      () => view?.getSelectedCollectionID?.(),
+      () => view?.getSelectedTreeRow?.(),
+      () => view?.selectedTreeRow
+    ];
+    for (const probe of probes) {
+      try {
+        const collection = await resolveCollection(await probe());
+        if (collection) {
+          return collection;
+        }
+      } catch (error) {
+        log(`selected collection probe failed: ${error.message}`);
+      }
+    }
+    return null;
+  }
+
+  function getCollectionName(collection) {
+    if (!collection) {
+      return "selected collection";
+    }
+    if (collection.name) {
+      return collection.name;
+    }
+    if (collection.getName) {
+      return collection.getName();
+    }
+    return `collection ${collection.id || collection.collectionID}`;
+  }
+
+  async function getChildCollections(collection) {
+    if (!collection) {
+      return [];
+    }
+    if (collection.getChildCollections) {
+      const children = await collection.getChildCollections();
+      return children || [];
+    }
+    if (Zotero.Collections?.getByParent) {
+      const children = await Zotero.Collections.getByParent(collection.id);
+      return children || [];
+    }
+    return [];
+  }
+
+  async function collectCollectionIDs(collection, seen) {
+    const ids = seen || new Set();
+    const collectionID = normalizeObjectID(collection);
+    if (!collectionID || ids.has(collectionID)) {
+      return ids;
+    }
+    ids.add(collectionID);
+    const children = await getChildCollections(collection);
+    for (const child of children) {
+      const childCollection = await resolveCollection(child);
+      await collectCollectionIDs(childCollection, ids);
+    }
+    return ids;
+  }
+
   async function findMissingReportItemsInLibrary(libraryID) {
     const allItems = await Zotero.Items.getAll(libraryID, true, false);
     const candidates = state.libraryScan.sortItemsForBatch(
       allItems.filter((item) => state.libraryScan.isCandidatePaperItem(item))
+    );
+    const missing = [];
+    for (const item of candidates) {
+      if (!await findExistingReportNote(item)) {
+        missing.push(item);
+      }
+    }
+    return missing;
+  }
+
+  async function findMissingReportItemsInCollection(collection) {
+    const collectionIDs = Array.from(await collectCollectionIDs(collection));
+    const libraryID = collection.libraryID || Zotero.Libraries.userLibraryID;
+    const allItems = await Zotero.Items.getAll(libraryID, true, false);
+    const candidates = state.libraryScan.sortItemsForBatch(
+      allItems.filter((item) => (
+        state.libraryScan.isCandidatePaperItem(item) &&
+        state.libraryScan.itemBelongsToAnyCollection(item, collectionIDs)
+      ))
     );
     const missing = [];
     for (const item of candidates) {
@@ -481,14 +725,57 @@
       return;
     }
 
-    for (const item of missing) {
-      enqueue(item.id, {
-        force: true,
-        skipIfReportExists: true,
-        reason: "batch-missing-library"
-      });
+    const result = enqueueBatch(win, missing, {
+      force: true,
+      skipIfReportExists: true,
+      reason: "batch-missing-library"
+    }, `Arch Note: ${libraryName}`);
+    if (!result.queued) {
+      win.alert("The eligible paper(s) are already queued or processing.");
+    } else if (!result.progressVisible) {
+      win.alert(`Queued ${result.queued} paper(s). Zotero will generate reports sequentially in the background.`);
     }
-    win.alert(`Queued ${missing.length} paper(s). Zotero will generate reports sequentially in the background.`);
+  }
+
+  async function runMissingForSelectedCollection(win) {
+    const collection = await getSelectedCollection(win);
+    if (!collection) {
+      win.alert("Select a Zotero collection first.");
+      return;
+    }
+
+    const libraryID = collection.libraryID || getSelectedLibraryID(win);
+    const library = Zotero.Libraries.get(libraryID);
+    if (!state.libraryScan.libraryCanReceiveNotes(library)) {
+      win.alert("The selected Zotero library is not editable.");
+      return;
+    }
+
+    const missing = await findMissingReportItemsInCollection(collection);
+    const collectionName = getCollectionName(collection);
+    if (!missing.length) {
+      win.alert("No eligible papers without Arch Note reports were found in the selected collection.");
+      return;
+    }
+
+    const confirmed = win.confirm(
+      `Generate Arch Note Markdown for ${missing.length} paper(s) in "${collectionName}"? ` +
+      "This will include papers in child collections when Zotero exposes them, call DeepSeek once per paper, and process items sequentially."
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const result = enqueueBatch(win, missing, {
+      force: true,
+      skipIfReportExists: true,
+      reason: "batch-missing-collection"
+    }, `Arch Note: ${collectionName}`);
+    if (!result.queued) {
+      win.alert("The eligible paper(s) are already queued or processing.");
+    } else if (!result.progressVisible) {
+      win.alert(`Queued ${result.queued} paper(s). Zotero will generate reports sequentially in the background.`);
+    }
   }
 
   function openPreferences(win) {
@@ -506,6 +793,7 @@
       state.rootURI = options.rootURI;
       state.prompt = options.prompt;
       state.libraryScan = options.libraryScan;
+      state.progress = options.progress;
       state.skillRunner = options.skillRunner;
       state.deepSeek = options.deepSeek;
       state.markdown = options.markdown;
@@ -520,15 +808,17 @@
       }
       const item = makeMenuItem(doc, MENU_ID, "Generate Arch Note with DeepSeek", () => runForSelected(win, { force: true }));
       const batch = makeMenuItem(doc, BATCH_MENU_ID, "Generate Missing Arch Notes in Current Library", () => runMissingForCurrentLibrary(win));
+      const collectionBatch = makeMenuItem(doc, COLLECTION_BATCH_MENU_ID, "Generate Missing Arch Notes in Selected Collection", () => runMissingForSelectedCollection(win));
       const settings = makeMenuItem(doc, SETTINGS_MENU_ID, "Arch Note Zotero Settings", () => openPreferences(win));
       popup.appendChild(item);
       popup.appendChild(batch);
+      popup.appendChild(collectionBatch);
       popup.appendChild(settings);
     },
 
     removeFromWindow(win) {
       const doc = win.document;
-      for (const id of [MENU_ID, BATCH_MENU_ID, SETTINGS_MENU_ID]) {
+      for (const id of [MENU_ID, BATCH_MENU_ID, COLLECTION_BATCH_MENU_ID, SETTINGS_MENU_ID]) {
         const element = doc.getElementById(id);
         if (element) {
           element.remove();
@@ -538,7 +828,10 @@
 
     runForSelected,
     runMissingForCurrentLibrary,
+    runMissingForSelectedCollection,
+    findMissingReportItemsInCollection,
     enqueue,
+    enqueueBatch,
     scheduleItemID,
     setPref,
 

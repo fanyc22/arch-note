@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7
+
+- Add a Tools menu action to generate missing Arch Notes for all eligible papers in the selected collection.
+- Include child collections when Zotero exposes them through the collection API.
+- Add Zotero progress-window reporting for selected-item and batch generation jobs.
+
 ## 0.1.6
 
 - Point GitHub metadata, release links, and Zotero update manifest URLs at `fanyc22/arch-note`.

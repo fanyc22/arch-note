@@ -41,3 +41,17 @@ test("libraryCanReceiveNotes rejects read-only libraries", () => {
   assert.equal(libraryScan.libraryCanReceiveNotes(null), false);
 });
 
+test("itemBelongsToAnyCollection matches numeric and object collection ids", () => {
+  assert.deepEqual(
+    libraryScan.getItemCollectionIDs(item({ getCollections: () => [7, { id: 9 }, { collectionID: 11 }, "13"] })),
+    [7, 9, 11, 13]
+  );
+  assert.equal(
+    libraryScan.itemBelongsToAnyCollection(item({ getCollections: () => [7, 9] }), [{ id: 9 }]),
+    true
+  );
+  assert.equal(
+    libraryScan.itemBelongsToAnyCollection(item({ collections: [3] }), [4, 5]),
+    false
+  );
+});

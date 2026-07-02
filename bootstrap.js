@@ -83,6 +83,7 @@ async function startup({ id, version, rootURI, resourceURI }) {
 
     loadScript(rootURI, "prompt.js", pluginScope);
     loadScript(rootURI, "library-scan.js", pluginScope);
+    loadScript(rootURI, "progress.js", pluginScope);
     loadScript(rootURI, "skill-runner.js", pluginScope);
     loadScript(rootURI, "deepseek-client.js", pluginScope);
     loadScript(rootURI, "markdown.js", pluginScope);
@@ -94,6 +95,7 @@ async function startup({ id, version, rootURI, resourceURI }) {
       rootURI,
       prompt: pluginScope.ArchNotePrompt,
       libraryScan: pluginScope.ArchNoteLibraryScan,
+      progress: pluginScope.ArchNoteProgress,
       skillRunner: pluginScope.ArchNoteSkillRunner,
       deepSeek: pluginScope.ArchNoteDeepSeek,
       markdown: pluginScope.ArchNoteMarkdown

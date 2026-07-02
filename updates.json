@@ -3,9 +3,9 @@
     "arch-note-zotero-deepseek@example.com": {
       "updates": [
         {
-          "version": "0.1.6",
-          "update_link": "https://github.com/fanyc22/arch-note/releases/download/v0.1.6/arch-note-zotero-deepseek-0.1.6.xpi",
-          "update_hash": "sha256:28e86d39f1a5fe1a7dc4d12f5adf9d73bccdf1b6bafce137303aee436a4ee5d6",
+          "version": "0.1.7",
+          "update_link": "https://github.com/fanyc22/arch-note/releases/download/v0.1.7/arch-note-zotero-deepseek-0.1.7.xpi",
+          "update_hash": "sha256:dc72d7a463caece822365fc05c34e59f6e82d94c2cc05338e19d84cf6d492352",
           "applications": {
             "zotero": {
               "strict_min_version": "8.0.1",

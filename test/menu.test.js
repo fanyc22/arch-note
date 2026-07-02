@@ -17,10 +17,11 @@ test("addToWindow injects the Arch Note Tools menu actions", () => {
   const api = require("../chrome/content/arch-note-zotero.js");
   api.init({
     pluginID: "arch-note-zotero-deepseek@example.com",
-    version: "0.1.6",
+    version: "0.1.7",
     rootURI: "jar:file:///test!/",
     prompt: {},
     libraryScan: {},
+    progress: {},
     skillRunner: {},
     deepSeek: {},
     markdown: {}
@@ -72,6 +73,7 @@ test("addToWindow injects the Arch Note Tools menu actions", () => {
     [
       ["arch-note-zotero-run-selected", "Generate Arch Note with DeepSeek"],
       ["arch-note-zotero-run-missing-library", "Generate Missing Arch Notes in Current Library"],
+      ["arch-note-zotero-run-missing-collection", "Generate Missing Arch Notes in Selected Collection"],
       ["arch-note-zotero-settings", "Arch Note Zotero Settings"]
     ]
   );

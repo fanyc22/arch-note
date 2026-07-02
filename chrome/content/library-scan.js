@@ -58,6 +58,31 @@
     });
   }
 
+  function normalizeID(value) {
+    if (value && typeof value === "object") {
+      return normalizeID(value.id || value.collectionID);
+    }
+    const id = Number(value);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }
+
+  function getItemCollectionIDs(item) {
+    const rawCollections = item?.getCollections
+      ? item.getCollections()
+      : item?.collections || [];
+    return (rawCollections || [])
+      .map(normalizeID)
+      .filter((id) => id !== null);
+  }
+
+  function itemBelongsToAnyCollection(item, collectionIDs) {
+    const wanted = new Set((collectionIDs || []).map(normalizeID).filter((id) => id !== null));
+    if (!wanted.size) {
+      return false;
+    }
+    return getItemCollectionIDs(item).some((id) => wanted.has(id));
+  }
+
   function libraryCanReceiveNotes(library) {
     return Boolean(library && library.editable !== false);
   }
@@ -65,9 +90,10 @@
   return {
     DEFAULT_PAPER_ITEM_TYPES,
     getItemTypeName,
+    getItemCollectionIDs,
     isCandidatePaperItem,
+    itemBelongsToAnyCollection,
     libraryCanReceiveNotes,
     sortItemsForBatch
   };
 });
-
