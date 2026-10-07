@@ -17,7 +17,7 @@ test("addToWindow injects the Arch Note Tools menu actions", () => {
   const api = require("../chrome/content/arch-note-zotero.js");
   api.init({
     pluginID: "arch-note-zotero-deepseek@example.com",
-    version: "0.1.8",
+    version: "0.1.9",
     rootURI: "jar:file:///test!/",
     prompt: {},
     libraryScan: {},
@@ -71,7 +71,7 @@ test("addToWindow injects the Arch Note Tools menu actions", () => {
   assert.deepEqual(
     popup.children.map((item) => [item.id, item.getAttribute("label")]),
     [
-      ["arch-note-zotero-run-selected", "Generate Arch Note with DeepSeek"],
+      ["arch-note-zotero-run-selected", "Generate Arch Note"],
       ["arch-note-zotero-run-missing-library", "Generate Missing Arch Notes in Current Library"],
       ["arch-note-zotero-run-missing-collection", "Generate Missing Arch Notes in Selected Collection"],
       ["arch-note-zotero-settings", "Arch Note Zotero Settings"]

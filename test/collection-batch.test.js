@@ -66,7 +66,7 @@ test("findMissingReportItemsInCollection includes child collections and skips ex
   const api = require("../chrome/content/arch-note-zotero.js");
   api.init({
     pluginID: "arch-note-zotero-deepseek@example.com",
-    version: "0.1.8",
+    version: "0.1.9",
     rootURI: "jar:file:///test!/",
     prompt: {},
     libraryScan,

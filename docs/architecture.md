@@ -7,7 +7,8 @@ flowchart LR
   B --> C["Delayed serial queue"]
   C --> D["Metadata + Zotero full-text cache"]
   D --> E["arch-note CLI prompt"]
-  E --> F["DeepSeek chat completions"]
+  E --> P["Unified 13-section system + paper and skill context"]
+  P --> F["DeepSeek or Poixe chat completions"]
   F --> G["Markdown child note"]
   G --> H["Tags: arch-note:done / arch-note:failed"]
 ```
@@ -22,3 +23,11 @@ The model-facing and note-rendering code is intentionally pure JavaScript:
 - `chrome/content/markdown.js`
 
 Those modules are loaded both by Zotero and by Node tests.
+
+`prompt.js` owns the system prompt for all generation paths. The skill's `# USER` section supplies context; its `# SYSTEM` section is replaced by the same system prompt used for built-in generation. Legacy format and style preferences no longer choose the final note structure. The CLI uses `detailed` and `group_meeting` to collect context.
+
+`deepseek-client.js` supports both DeepSeek and Poixe using OpenAI-compatible Chat Completions. The DeepSeek preference keys are preserved for existing installations. Poixe uses separate `poixeApiKey`, `poixeBaseUrl`, and `poixeModel` preferences. `apiProvider` selects the active profile; requests do not fall back to another provider's key.
+
+Poixe requests use `/v1/chat/completions`, Bearer authentication, and `max_completion_tokens`. Temperature is omitted to use the upstream model's sampling default. Root, `/v1`, and full Chat Completions URLs are accepted. Secondary Poixe hosts can be configured through Base URL.
+
+The plugin does not provide live web search or a tool-execution loop. The system prompt requires disclosure of this limitation for follow-up research and novelty claims.

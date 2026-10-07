@@ -18,23 +18,19 @@
       <html:label for="arch-note-skill-db">Skill corpus DB</html:label>
       <html:input id="arch-note-skill-db" type="text" placeholder="/path/to/data/indexes/arch_corpus.sqlite"/>
 
-      <html:label for="arch-note-skill-format">Skill format</html:label>
-      <html:select id="arch-note-skill-format">
-        <html:option value="detailed">Detailed</html:option>
-        <html:option value="group_meeting">Group meeting</html:option>
-        <html:option value="uw_review">UW review</html:option>
-        <html:option value="cmu_summary">CMU summary</html:option>
-        <html:option value="slide_outline">Slide outline</html:option>
-        <html:option value="brief">Brief</html:option>
-      </html:select>
-
       <html:label for="arch-note-skill-top-k">Skill top-k</html:label>
       <html:input id="arch-note-skill-top-k" type="number" min="0" step="1"/>
 
       <html:label for="arch-note-skill-timeout">Skill timeout seconds</html:label>
       <html:input id="arch-note-skill-timeout" type="number" min="10" step="10"/>
 
-      <html:label for="arch-note-api-key">DeepSeek API key</html:label>
+      <html:label for="arch-note-provider">API provider</html:label>
+      <html:select id="arch-note-provider" onchange="ArchNotePrefs.changeProvider();">
+        <html:option value="deepseek">DeepSeek</html:option>
+        <html:option value="poixe">Poixe</html:option>
+      </html:select>
+
+      <html:label for="arch-note-api-key">API key</html:label>
       <html:input id="arch-note-api-key" type="password" autocomplete="off"/>
 
       <html:label for="arch-note-base-url">Base URL</html:label>
@@ -42,14 +38,6 @@
 
       <html:label for="arch-note-model">Model</html:label>
       <html:input id="arch-note-model" type="text"/>
-
-      <html:label for="arch-note-style">Style</html:label>
-      <html:select id="arch-note-style">
-        <html:option value="group_meeting">Group meeting</html:option>
-        <html:option value="cmu_summary">CMU summary</html:option>
-        <html:option value="uw_review">UW review</html:option>
-        <html:option value="lecture_slide">Lecture slide</html:option>
-      </html:select>
 
       <html:label for="arch-note-language">Language</html:label>
       <html:select id="arch-note-language">
@@ -72,7 +60,7 @@
     </hbox>
 
     <html:p style="max-width: 720px; color: var(--fill-secondary, #666);">
-      The API key is stored in Zotero preferences on this machine. Use a restricted DeepSeek key if possible.
+      Each provider's API key is stored separately in Zotero preferences on this machine.
     </html:p>
   </groupbox>
 </vbox>

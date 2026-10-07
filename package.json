@@ -1,8 +1,8 @@
 {
   "name": "arch-note-zotero-deepseek",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
-  "description": "Zotero plugin that generates architecture-paper reading guides with the DeepSeek API.",
+  "description": "Zotero plugin that generates detailed paper reading guides with DeepSeek or Poixe APIs.",
   "type": "commonjs",
   "license": "MIT",
   "homepage": "https://github.com/fanyc22/arch-note#readme",
@@ -17,6 +17,7 @@
     "zotero",
     "zotero-plugin",
     "deepseek",
+    "poixe",
     "computer-architecture",
     "paper-reading"
   ],

@@ -6,7 +6,7 @@
 
 [English](README.md) | 中文
 
-Arch Note Zotero DeepSeek 是一个 Zotero 桌面插件，用于为计算机体系结构论文生成导读 Markdown，并把导读作为 Zotero 子笔记附回对应条目。它可以调用本机 `arch-paper-reading-skill` 提供的 `arch-note` CLI 生成带检索上下文的 prompt，再使用 DeepSeek Chat Completions API 生成最终导读。
+Arch Note Zotero DeepSeek 是一个 Zotero 桌面插件，用于为论文生成详细导读 Markdown，并把导读作为 Zotero 子笔记附回对应条目。它可以调用本机 `arch-paper-reading-skill` 提供的 `arch-note` CLI 提取论文和检索上下文，再使用 DeepSeek 或 Poixe Chat Completions API 生成最终导读。
 
 这个插件面向体系结构论文阅读组、博士生文献阅读流程，以及希望每篇论文入库后自动获得结构化导读和 critique 的个人文献库。
 
@@ -15,8 +15,9 @@ Arch Note Zotero DeepSeek 是一个 Zotero 桌面插件，用于为计算机体�
 - 监听新加入 Zotero 的论文条目和 PDF 附件。
 - 在生成前等待 Zotero PDF 全文索引。
 - 可选调用本机 `arch-note` CLI。
-- 当 skill CLI 失败时，可回退到内置体系结构论文 prompt。
-- 调用 DeepSeek 兼容的 `/chat/completions` 接口。
+- 单篇、自动生成和批量补全统一使用 13 项深度导读 system prompt。
+- 当 skill CLI 失败时，可回退到 Zotero 已索引的论文文本。
+- 支持 DeepSeek 和 Poixe 转发 API，分别保存 API key、Base URL 和模型。
 - 把生成的 Markdown 写入 Zotero 子笔记。
 - 使用 `arch-note:done`、`arch-note:failed`、`arch-note:report` 标签标记状态。
 - 在 Tools 菜单中提供选中论文生成、选中 collection 补生成和全库补生成动作。
@@ -51,7 +52,7 @@ npm run build
 生成文件位于：
 
 ```text
-dist/arch-note-zotero-deepseek-0.1.8.xpi
+dist/arch-note-zotero-deepseek-0.1.9.xpi
 ```
 
 ## 配置
@@ -74,19 +75,26 @@ Tools > Arch Note Zotero Settings
 | Ask Zotero to index PDF text before generation | enabled |
 | arch-note command | `arch-note` 的绝对路径 |
 | Skill corpus DB | `data/indexes/arch_corpus.sqlite` 的路径 |
-| Skill format | `detailed` |
 | Skill top-k | `4` |
 | Skill timeout seconds | `300` |
-| DeepSeek API key | 你的 DeepSeek API key |
+| API provider | `DeepSeek` 或 `Poixe` |
+| API key | 所选服务商的 API key |
 | Base URL | `https://api.deepseek.com` |
 | Model | 例如 `deepseek-v4-pro` |
-| Style | `group_meeting` |
 | Language | `Chinese` 或 `English` |
 | Max paper chars | `60000` |
-| Max output tokens | `4096` |
+| Max output tokens | `16384`，以模型支持的上限为准 |
 | Auto-run delay seconds | `20` |
 
 API key 存在本机 Zotero preferences 中。建议使用受限 key；如果曾经暴露，应立即轮换。
+
+### 使用 Poixe 转发 API
+
+在 `API provider` 中选择 `Poixe`，填写 Poixe API key，Base URL 使用 `https://api.poixe.com/v1`，Model 填写 Poixe 控制台支持的模型 ID，例如 `gpt-5.2`。切换服务商时，DeepSeek 和 Poixe 的 key、URL、模型分别保留；仅在点击 Save 后保存配置。接口遵循 [Poixe 官方 Chat Completions 文档](https://docs.poixe.com/cn/api-reference/text-api/openai-completions/overview)。
+
+Base URL 也可以填写 `https://api.poixe.com` 或完整的 `https://api.poixe.com/v1/chat/completions`，插件会补全路径并避免重复拼接。Poixe 主接口存在 120 秒超时，详细导读遇到超时可以使用 `https://api-eu-central-1-dc8.poixe.com/v1` 或 `https://api-eu-central-1-dc15.poixe.com/v1`。详见 [Poixe Base URL 文档](https://docs.poixe.com/cn/api-reference/introduction/base-url)。
+
+升级后保留已有的 DeepSeek 配置和输出 token 设置；如果仍使用 `4096`，建议根据模型上限手动提高到 `16384`，给 13 项详细导读留出空间。
 
 ## 使用 arch-paper-reading-skill
 
@@ -117,14 +125,14 @@ arch-note prompt \
   --out prompt.md
 ```
 
-DeepSeek 请求会使用 `arch-note prompt` 生成的 `# SYSTEM` 和 `# USER` 部分。
+API 请求统一使用插件的 system prompt；`arch-note prompt` 的 `# USER` 部分提供论文摘录、factual anchors 和检索上下文。skill 自带的 `# SYSTEM` 和旧输出 schema 不再决定导读格式。插件固定用 `detailed` 和 `group_meeting` 获取 skill 上下文。
 
 ## 使用方法
 
 ### 为选中论文生成导读
 
 1. 在 Zotero 中选中一篇或多篇论文。
-2. 点击 `Tools > Generate Arch Note with DeepSeek`。
+2. 点击 `Tools > Generate Arch Note`。
 3. 插件会创建或更新名为 `Arch Note` 的子笔记。
 
 ### 为当前库中缺少导读的论文批量补生成
@@ -153,15 +161,25 @@ DeepSeek 请求会使用 `arch-note prompt` 生成的 `# SYSTEM` 和 `# USER` �
 
 生成内容是 Markdown，并会转换为 Zotero note HTML。笔记中包含隐藏标记，因此插件可以识别并更新已有导读，而不是重复创建。
 
-默认中文导读通常包含：
+所有生成方式使用同一份 system prompt，按顺序包含：
 
-- 问题与动机
-- 核心思想
-- 机制与实现
-- 评估总结
-- 局限与 critique
-- 讨论问题
-- 对后续阅读的价值
+1. 研究问题、重要性与价值。
+2. 已有研究及其不足。
+3. 从已有背景重建作者可能的思考路径。
+4. 核心 idea 的 intuition。
+5. 用具体例子解释输入、处理、输出 pipeline。
+6. 数学推导和必要的理论背景；无推导时说明。
+7. 实验验证：问题 -> 实验 -> 答案。
+8. Take aways。
+9. 最脆弱的假设。
+10. 一周内可执行的最小复现实验。
+11. 针对核心 claim 的反例。
+12. 后续研究、扩展、反驳与新的认知。
+13. 从 limitation 和需求出发的 follow-up idea。
+
+写作参考 Andrej Karpathy 的具体技术情境和 Kaiming He 的技术清晰度，并明确区分论文原文、已有文献、合理推断和不确定猜测。设置中不再区分输出格式或风格。
+
+插件当前没有联网搜索工具。第 12 项必须说明“未进行联网检索”，只分析输入中可核验的相关资料并列出待检索问题；第 13 项必须说明尚未验证的新颖性。配置 Poixe 不会自动提供搜索能力。
 
 ## 常见问题
 
@@ -177,9 +195,9 @@ DeepSeek 请求会使用 `arch-note prompt` 生成的 `# SYSTEM` 和 `# USER` �
 
 这说明 Zotero 没有可用的 PDF 全文。可以先在 Zotero 打开 PDF，等待索引完成，或开启 `Ask Zotero to index PDF text before generation`。
 
-### DeepSeek 报错
+### API 报错
 
-检查 API key、Base URL、模型名、账户额度和网络连接。
+检查所选 API provider 的 API key、Base URL、模型名、账户额度和网络连接。Poixe 的 key 和模型应来自 Poixe 控制台。
 
 ### arch-note 失败
 
@@ -201,8 +219,8 @@ npm run build
 | `preferences.js` | preference pane 控制器 |
 | `chrome/content/arch-note-zotero.js` | Zotero 条目、菜单、笔记和批量流程 |
 | `chrome/content/skill-runner.js` | `arch-note` CLI 集成 |
-| `chrome/content/deepseek-client.js` | DeepSeek API 客户端 |
-| `chrome/content/prompt.js` | 内置 fallback prompt |
+| `chrome/content/deepseek-client.js` | DeepSeek / Poixe Chat Completions 客户端 |
+| `chrome/content/prompt.js` | 统一 system prompt 和论文输入上下文 |
 | `chrome/content/markdown.js` | Markdown 到 Zotero note HTML 转换 |
 | `chrome/content/progress.js` | Zotero 进度窗口适配 |
 | `scripts/build-xpi.mjs` | XPI 打包脚本 |
@@ -218,7 +236,7 @@ npm run build
 
 ## 隐私
 
-插件会读取 Zotero 条目 metadata、附件路径和 Zotero 已索引的全文。它会把生成 prompt 发送到配置的 DeepSeek 兼容 API endpoint。插件不会向 OpenAI 发送数据，也不会使用 ChatGPT Pro。
+插件会读取 Zotero 条目 metadata、附件路径和 Zotero 已索引的全文，并把 prompt 发送到所选服务商的 API endpoint。选择 DeepSeek 时数据发送到配置的 DeepSeek endpoint；选择 Poixe 时发送到配置的 Poixe endpoint，并由 Poixe 路由到所选模型的上游服务商。插件不使用 ChatGPT Pro 订阅。
 
 ## 许可证
 

@@ -273,15 +273,16 @@
       return "skipped";
     }
 
-    const apiKey = String(getPref("apiKey", "") || "").trim();
+    const provider = state.deepSeek.getProviderConfig(getPref("apiProvider", "deepseek"));
+    const apiKey = String(getPref(provider.prefs.apiKey, "") || "").trim();
     if (!apiKey) {
-      throw new Error("DeepSeek API key is missing. Configure it in Zotero Preferences > Arch Note Zotero.");
+      throw new Error(`${provider.label} API key is missing. Configure it in Zotero Preferences > Arch Note Zotero.`);
     }
 
     const language = getPref("language", "zh-CN");
-    const model = getPref("model", "deepseek-v4-flash");
+    const model = String(getPref(provider.prefs.model, provider.model) || provider.model).trim();
     const metadata = collectMetadata(item);
-    const fallbackSystem = state.prompt.systemMessage(language);
+    const system = state.prompt.systemMessage(language);
     let messages;
 
     if (getPref("useSkill", true)) {
@@ -292,8 +293,8 @@
           itemID: item.id,
           command: getPref("skillCommand", "arch-note"),
           dbPath: getPref("skillDbPath", ""),
-          format: getPref("skillFormat", "detailed"),
-          style: getPref("style", "group_meeting"),
+          format: "detailed",
+          style: "group_meeting",
           topK: Number(getPref("skillTopK", 4)),
           maxChars: Number(getPref("maxChars", 60000)),
           timeoutSeconds: Number(getPref("skillTimeoutSeconds", 300)),
@@ -309,7 +310,7 @@
           OS: typeof OS !== "undefined" ? OS : undefined,
           PathUtils: typeof PathUtils !== "undefined" ? PathUtils : undefined
         });
-        messages = state.skillRunner.promptToMessages(skillResult.prompt, fallbackSystem);
+        messages = state.skillRunner.promptToMessages(skillResult.prompt, system);
         log(`using arch-note skill prompt for item ${item.id}`);
       } catch (error) {
         if (!getPref("fallbackToInternalPrompt", true)) {
@@ -324,22 +325,22 @@
       const prompt = state.prompt.buildPaperPrompt({
         metadata,
         text: paperText,
-        style: getPref("style", "group_meeting"),
         maxChars: Number(getPref("maxChars", 60000))
       });
       messages = [
-        { role: "system", content: fallbackSystem },
+        { role: "system", content: system },
         { role: "user", content: prompt }
       ];
     }
 
     const markdown = await state.deepSeek.complete({
+      provider: provider.id,
       apiKey,
-      baseUrl: getPref("baseUrl", "https://api.deepseek.com"),
+      baseUrl: getPref(provider.prefs.baseUrl, provider.baseUrl) || provider.baseUrl,
       model,
       messages,
       temperature: Number(getPref("temperature", 0.2)),
-      maxTokens: Number(getPref("maxTokens", 4096))
+      maxTokens: Number(getPref("maxTokens", 16384))
     });
 
     await saveReportNote(item, markdown, {
@@ -719,7 +720,7 @@
     const libraryName = library?.name || `library ${libraryID}`;
     const confirmed = win.confirm(
       `Generate Arch Note Markdown for ${missing.length} paper(s) in ${libraryName}? ` +
-      "This will call DeepSeek once per paper and process items sequentially."
+      "This will call the configured API provider once per paper and process items sequentially."
     );
     if (!confirmed) {
       return;
@@ -760,7 +761,7 @@
 
     const confirmed = win.confirm(
       `Generate Arch Note Markdown for ${missing.length} paper(s) in "${collectionName}"? ` +
-      "This will include papers in child collections when Zotero exposes them, call DeepSeek once per paper, and process items sequentially."
+      "This will include papers in child collections when Zotero exposes them, call the configured API provider once per paper, and process items sequentially."
     );
     if (!confirmed) {
       return;
@@ -806,7 +807,7 @@
       if (!popup || doc.getElementById(MENU_ID)) {
         return;
       }
-      const item = makeMenuItem(doc, MENU_ID, "Generate Arch Note with DeepSeek", () => runForSelected(win, { force: true }));
+      const item = makeMenuItem(doc, MENU_ID, "Generate Arch Note", () => runForSelected(win, { force: true }));
       const batch = makeMenuItem(doc, BATCH_MENU_ID, "Generate Missing Arch Notes in Current Library", () => runMissingForCurrentLibrary(win));
       const collectionBatch = makeMenuItem(doc, COLLECTION_BATCH_MENU_ID, "Generate Missing Arch Notes in Selected Collection", () => runMissingForSelectedCollection(win));
       const settings = makeMenuItem(doc, SETTINGS_MENU_ID, "Arch Note Zotero Settings", () => openPreferences(win));

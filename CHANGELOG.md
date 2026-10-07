@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9
+
+- Use one detailed, 13-section system prompt for selected papers, automatic generation, and both batch workflows, including skill prompts and fallback prompts.
+- Cover intuition, mathematical background, claim-driven experiments, reproduction, counterexamples, follow-up work, and new research ideas.
+- Distinguish paper claims, literature conclusions, evidence-based inferences, and uncertain speculation; explicitly disclose unavailable web search.
+- Remove output format and style selectors. Keep the local skill's paper text, factual anchors, and retrieved context.
+- Add Poixe Chat Completions support with independent provider keys, URLs, and model settings.
+- Normalize root, versioned, and complete endpoint URLs, including Poixe secondary endpoints.
+- Use `max_completion_tokens` and upstream sampling defaults for Poixe; preserve DeepSeek request compatibility.
+- Increase the default output budget to 16384 tokens; preserve existing user settings.
+
 ## 0.1.8
 
 - No functional changes.

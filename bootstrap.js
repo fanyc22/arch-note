@@ -72,6 +72,7 @@ async function startup({ id, version, rootURI, resourceURI }) {
       Services: ServicesRef,
       console: typeof console !== "undefined" ? console : undefined,
       fetch: typeof fetch !== "undefined" ? fetch : undefined,
+      URL: typeof URL !== "undefined" ? URL : undefined,
       setTimeout,
       clearTimeout,
       PathUtils: typeof PathUtils !== "undefined" ? PathUtils : undefined,
@@ -106,7 +107,7 @@ async function startup({ id, version, rootURI, resourceURI }) {
       id: "arch-note-zotero-prefpane",
       label: "Arch Note Zotero",
       src: `${rootURI}preferences.xhtml`,
-      scripts: [`${rootURI}preferences.js`]
+      scripts: [`${rootURI}chrome/content/deepseek-client.js`, `${rootURI}preferences.js`]
     });
 
     await Zotero.uiReadyPromise;

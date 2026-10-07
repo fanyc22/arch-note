@@ -85,7 +85,7 @@
     return ["paper", "text", options.paperPath, "--out", options.outPath];
   }
 
-  function promptToMessages(skillPrompt, fallbackSystem) {
+  function promptToMessages(skillPrompt, systemPrompt) {
     const prompt = String(skillPrompt || "").trim();
     const systemMarker = "# SYSTEM";
     const userMarker = "# USER";
@@ -96,13 +96,13 @@
       const system = prompt.slice(systemIndex + systemMarker.length, userIndex).trim();
       const user = prompt.slice(userIndex + userMarker.length).trim();
       return [
-        { role: "system", content: system || fallbackSystem || "You are a paper reading assistant." },
+        { role: "system", content: systemPrompt || system || "You are a paper reading assistant." },
         { role: "user", content: user || prompt }
       ];
     }
 
     return [
-      { role: "system", content: fallbackSystem || "You are a paper reading assistant." },
+      { role: "system", content: systemPrompt || "You are a paper reading assistant." },
       { role: "user", content: prompt }
     ];
   }
@@ -290,4 +290,3 @@
     runSkillPrompt
   };
 });
-

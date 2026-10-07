@@ -43,11 +43,18 @@ test("buildPromptArgs includes corpus db and output path", () => {
   ]);
 });
 
-test("promptToMessages splits arch-note system and user sections", () => {
-  const messages = skillRunner.promptToMessages("# SYSTEM\nsys\n\n# USER\nuser", "fallback");
+test("promptToMessages uses the unified system while preserving skill evidence", () => {
+  const messages = skillRunner.promptToMessages("# SYSTEM\nold format\n\n# USER\nfactual anchors", "unified system");
   assert.deepEqual(messages, [
-    { role: "system", content: "sys" },
-    { role: "user", content: "user" }
+    { role: "system", content: "unified system" },
+    { role: "user", content: "factual anchors" }
+  ]);
+});
+
+test("promptToMessages uses the unified system for unstructured skill output", () => {
+  assert.deepEqual(skillRunner.promptToMessages("paper text and context", "unified system"), [
+    { role: "system", content: "unified system" },
+    { role: "user", content: "paper text and context" }
   ]);
 });
 
@@ -65,4 +72,3 @@ test("metadataPrefix carries Zotero metadata into skill paper text", () => {
   assert.match(prefix, /Authors: A, B/);
   assert.match(prefix, /# Paper Text/);
 });
-
