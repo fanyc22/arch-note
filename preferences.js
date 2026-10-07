@@ -52,14 +52,7 @@ var ArchNotePrefs = {
     }
     this.input("arch-note-enabled").checked = Boolean(this.get("enabled", true));
     this.input("arch-note-auto-run").checked = Boolean(this.get("autoRunOnNewItems", true));
-    this.input("arch-note-use-skill").checked = Boolean(this.get("useSkill", true));
-    this.input("arch-note-fallback-internal").checked = Boolean(this.get("fallbackToInternalPrompt", true));
-    this.input("arch-note-keep-artifacts").checked = Boolean(this.get("keepSkillArtifacts", false));
     this.input("arch-note-force-index").checked = Boolean(this.get("forceIndex", true));
-    this.input("arch-note-skill-command").value = this.get("skillCommand", "arch-note");
-    this.input("arch-note-skill-db").value = this.get("skillDbPath", "");
-    this.input("arch-note-skill-top-k").value = this.get("skillTopK", 4);
-    this.input("arch-note-skill-timeout").value = this.get("skillTimeoutSeconds", 300);
     this.providerDrafts = {};
     this.loadProvider(this.get("apiProvider", "deepseek"));
     this.input("arch-note-max-chars").value = this.get("maxChars", 60000);
@@ -75,14 +68,7 @@ var ArchNotePrefs = {
     }
     this.set("enabled", this.input("arch-note-enabled").checked);
     this.set("autoRunOnNewItems", this.input("arch-note-auto-run").checked);
-    this.set("useSkill", this.input("arch-note-use-skill").checked);
-    this.set("fallbackToInternalPrompt", this.input("arch-note-fallback-internal").checked);
-    this.set("keepSkillArtifacts", this.input("arch-note-keep-artifacts").checked);
     this.set("forceIndex", this.input("arch-note-force-index").checked);
-    this.set("skillCommand", this.input("arch-note-skill-command").value.trim() || "arch-note");
-    this.set("skillDbPath", this.input("arch-note-skill-db").value.trim());
-    this.set("skillTopK", Number(this.input("arch-note-skill-top-k").value || 4));
-    this.set("skillTimeoutSeconds", Number(this.input("arch-note-skill-timeout").value || 300));
     this.captureProvider();
     this.set("apiProvider", this.providerID);
     for (const [providerID, draft] of Object.entries(this.providerDrafts)) {

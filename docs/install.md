@@ -9,14 +9,12 @@
 2. Open Zotero.
 3. Go to `Tools > Add-ons`.
 4. Choose `Install Add-on From File...`.
-5. Select `dist/arch-note-zotero-deepseek-0.1.9.xpi`.
+5. Select `dist/arch-note-zotero-deepseek-0.1.10.xpi`.
 6. Restart Zotero if prompted.
 7. Open Zotero Preferences and configure:
 
    - API provider: DeepSeek or Poixe
    - the selected provider's API key, Base URL, and model
-   - `arch-note` command path
-   - optional skill corpus DB path
    - model
    - output language
    - auto-run delay
@@ -27,15 +25,4 @@ For Poixe, select `Poixe`, enter a Poixe API key, and use `https://api.poixe.com
 
 All generation modes use the same 13-section system prompt. Set `Max output tokens` to `16384` for detailed guides if your existing setting is lower and the selected model supports this output budget.
 
-For this local workspace, install the skill CLI first:
-
-```bash
-cd /Users/fanyuchen/Downloads/arch-paper-reading-skill
-python3 -m pip install -e ".[dev]"
-```
-
-Then set `arch-note command` to the absolute path returned by:
-
-```bash
-which arch-note
-```
+No local skill, Python CLI, or corpus database is required. Attach a PDF to the paper and let Zotero index it.

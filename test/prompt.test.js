@@ -48,3 +48,12 @@ test("the unified system prompt covers all 13 steps and evidence boundaries", ()
     assert.ok(content.includes(term), term);
   }
 });
+
+test("validateGuide rejects short, incomplete, reordered, and repeated sections", () => {
+  const valid = Array.from({ length: 13 }, (_, index) => `## ${index + 1}. Topic\nExplanation.`).join("\n\n");
+  assert.doesNotThrow(() => prompt.validateGuide(valid));
+  assert.throws(() => prompt.validateGuide("# Paper\nOne-sentence summary\nThree insights\nFlaw\nImplication"), /required 13-section/);
+  assert.throws(() => prompt.validateGuide(valid.replace("## 13. Topic", "### 13. Topic")), /required 13-section/);
+  assert.throws(() => prompt.validateGuide(valid.replace("## 2. Topic", "## 1. Topic")), /required 13-section/);
+  assert.throws(() => prompt.validateGuide(valid + "\n## 13. Extra"), /required 13-section/);
+});

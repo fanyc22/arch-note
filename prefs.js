@@ -1,12 +1,5 @@
 pref("extensions.arch-note-zotero.enabled", true);
 pref("extensions.arch-note-zotero.autoRunOnNewItems", true);
-pref("extensions.arch-note-zotero.useSkill", true);
-pref("extensions.arch-note-zotero.skillCommand", "arch-note");
-pref("extensions.arch-note-zotero.skillDbPath", "");
-pref("extensions.arch-note-zotero.skillTopK", 4);
-pref("extensions.arch-note-zotero.skillTimeoutSeconds", 300);
-pref("extensions.arch-note-zotero.fallbackToInternalPrompt", true);
-pref("extensions.arch-note-zotero.keepSkillArtifacts", false);
 pref("extensions.arch-note-zotero.apiProvider", "deepseek");
 pref("extensions.arch-note-zotero.apiKey", "");
 pref("extensions.arch-note-zotero.baseUrl", "https://api.deepseek.com");

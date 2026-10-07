@@ -16,3 +16,16 @@ test("markdownToNoteHTML escapes content and embeds marker", () => {
   assert.equal(markdown.noteContainsReport(html), true);
 });
 
+test("guide provenance names the actual provider, endpoint, version, and prompt", () => {
+  const html = markdown.markdownToNoteHTML("# Guide", {
+    provider: "Poixe",
+    model: "relay-model",
+    endpoint: "https://api.poixe.com/v1/chat/completions",
+    version: "0.1.10",
+    promptRevision: "paper-reading-13-v2"
+  });
+  assert.match(html, /Arch Note 0\.1\.10 \(Poixe \/ relay-model\)/);
+  assert.match(html, /https:\/\/api\.poixe\.com\/v1\/chat\/completions/);
+  assert.match(html, /paper-reading-13-v2/);
+  assert.doesNotMatch(html, /Arch Note Zotero DeepSeek/);
+});

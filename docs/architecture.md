@@ -6,8 +6,7 @@ flowchart LR
   Z["Manual batch: current library missing reports"] --> C
   B --> C["Delayed serial queue"]
   C --> D["Metadata + Zotero full-text cache"]
-  D --> E["arch-note CLI prompt"]
-  E --> P["Unified 13-section system + paper and skill context"]
+  D --> P["Unified 13-section system + paper text"]
   P --> F["DeepSeek or Poixe chat completions"]
   F --> G["Markdown child note"]
   G --> H["Tags: arch-note:done / arch-note:failed"]
@@ -18,13 +17,14 @@ The Zotero runtime integration lives in `chrome/content/arch-note-zotero.js`.
 The model-facing and note-rendering code is intentionally pure JavaScript:
 
 - `chrome/content/prompt.js`
-- `chrome/content/skill-runner.js`
 - `chrome/content/deepseek-client.js`
 - `chrome/content/markdown.js`
 
 Those modules are loaded both by Zotero and by Node tests.
 
-`prompt.js` owns the system prompt for all generation paths. The skill's `# USER` section supplies context; its `# SYSTEM` section is replaced by the same system prompt used for built-in generation. Legacy format and style preferences no longer choose the final note structure. The CLI uses `detailed` and `group_meeting` to collect context.
+`prompt.js` owns the system prompt for all generation paths and validates the 13 numbered sections before saving. The plugin reads Zotero-indexed PDF text directly. Legacy skill, format, and style preferences have no effect. No external CLI is loaded or executed.
+
+Runtime modules are loaded with `ignoreCache: true` to avoid retaining old subscript code during updates. Generated notes record the provider, endpoint, model, plugin version, and prompt revision. Request diagnostics omit API keys, URL query parameters, and paper contents.
 
 `deepseek-client.js` supports both DeepSeek and Poixe using OpenAI-compatible Chat Completions. The DeepSeek preference keys are preserved for existing installations. Poixe uses separate `poixeApiKey`, `poixeBaseUrl`, and `poixeModel` preferences. `apiProvider` selects the active profile; requests do not fall back to another provider's key.
 

@@ -2,7 +2,6 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const prompt = require("../chrome/content/prompt.js");
-const skillRunner = require("../chrome/content/skill-runner.js");
 const client = require("../chrome/content/deepseek-client.js");
 const markdown = require("../chrome/content/markdown.js");
 const libraryScan = require("../chrome/content/library-scan.js");
@@ -16,7 +15,7 @@ function generation(t, scenario) {
     poixeModel: "relay-model",
     language: scenario.language || "zh-CN",
     delaySeconds: 0,
-    useSkill: scenario.useSkill,
+    useSkill: true,
     forceIndex: false,
     // Legacy output preferences must not change the unified system prompt.
     skillFormat: "brief",
@@ -55,7 +54,7 @@ function generation(t, scenario) {
   const requests = [];
   const notes = [];
   const logs = [];
-  const skillCalls = [];
+  let skillCalls = 0;
   let finish;
   const completed = new Promise((resolve) => { finish = resolve; });
   const previousZotero = global.Zotero;
@@ -86,6 +85,7 @@ function generation(t, scenario) {
   const api = require("../chrome/content/arch-note-zotero.js");
   api.init({
     pluginID: "arch-note-zotero-deepseek@example.com",
+    version: "0.1.10",
     prompt,
     libraryScan,
     markdown,
@@ -93,14 +93,7 @@ function generation(t, scenario) {
       createProgressReporter: () => ({ isVisible: () => true, update() {}, finish })
     },
     skillRunner: {
-      ...skillRunner,
-      async runSkillPrompt(options) {
-        skillCalls.push(options);
-        if (scenario.skillFails) {
-          throw new Error("skill unavailable");
-        }
-        return { prompt: `# SYSTEM\nOLD SKILL SYSTEM\n\n# USER\nFactual anchors and PDF evidence for ${options.metadata.title}` };
-      }
+      async runSkillPrompt() { skillCalls += 1; throw new Error("Legacy skill must not run"); }
     },
     deepSeek: {
       ...client,
@@ -108,7 +101,9 @@ function generation(t, scenario) {
         requests.push({ url, headers: init.headers, body: JSON.parse(init.body) });
         return {
           ok: true,
-          text: async () => JSON.stringify({ choices: [{ message: { content: "# Paper guide\n\nEvidence-based summary." } }] })
+          text: async () => JSON.stringify({ choices: [{ message: { content: scenario.invalidGuide
+            ? "# Paper guide\n\nOne-sentence summary\nThree insights\nFlaw\nImplication"
+            : "# Paper guide\n\n" + Array.from({ length: 13 }, (_, index) => `## ${index + 1}. Topic\nEvidence-based explanation.`).join("\n\n") } }] })
         };
       })
     }
@@ -127,14 +122,13 @@ function generation(t, scenario) {
     alert: (message) => assert.fail(message),
     confirm: () => true
   };
-  return { api, win, papers, completed, saved, observer, requests, notes, logs, skillCalls };
+  return { api, win, papers, completed, saved, observer, requests, notes, logs, skillCalls: () => skillCalls };
 }
 
 for (const scenario of [
-  { name: "selected items with built-in evidence", provider: "deepseek", useSkill: false, action: "runForSelected" },
-  { name: "library backfill with skill evidence", provider: "deepseek", useSkill: true, action: "runMissingForCurrentLibrary" },
-  { name: "collection backfill with Poixe and skill evidence", provider: "poixe", useSkill: true, action: "runMissingForSelectedCollection", language: "en" },
-  { name: "Poixe skill failure with built-in fallback", provider: "poixe", useSkill: true, skillFails: true, action: "runForSelected" }
+  { name: "selected items", provider: "deepseek", action: "runForSelected" },
+  { name: "library backfill", provider: "deepseek", action: "runMissingForCurrentLibrary" },
+  { name: "collection backfill with Poixe", provider: "poixe", action: "runMissingForSelectedCollection", language: "en" }
 ]) {
   test(`generation uses the unified system: ${scenario.name}`, { timeout: 2000 }, async (t) => {
     const env = generation(t, scenario);
@@ -143,6 +137,7 @@ for (const scenario of [
     assert.equal(result.succeeded, 2);
     assert.equal(result.failed, 0);
     assert.equal(env.notes.length, 2);
+    assert.equal(env.skillCalls(), 0);
     assert.deepEqual(env.notes.map((note) => note.parentID), [1, 2]);
     assert.ok(env.papers.every((paper) => paper.tags.includes("arch-note:done")));
     assert.equal(env.requests.length, 2);
@@ -156,24 +151,21 @@ for (const scenario of [
         assert.equal(request.url, "https://api.poixe.com/v1/chat/completions");
         assert.equal(request.headers.Authorization, "Bearer sk-poixe-test");
         assert.equal(request.body.model, "relay-model");
+        assert.ok(env.notes.every((note) => note.html.includes("Poixe / relay-model")));
+        assert.ok(env.notes.every((note) => note.html.includes("https://api.poixe.com/v1/chat/completions")));
       } else {
         assert.equal(request.url, "https://api.deepseek.com/chat/completions");
         assert.equal(request.headers.Authorization, "Bearer sk-deepseek-test");
         assert.equal(request.body.model, "deepseek-v4-pro");
       }
     }
-    if (scenario.useSkill) {
-      assert.equal(env.skillCalls.length, 2);
-      assert.ok(env.skillCalls.every((call) => call.format === "detailed" && call.style === "group_meeting"));
-    }
-    if (scenario.skillFails) {
-      assert.ok(env.logs.some((message) => message.includes("falling back to internal prompt")));
-    }
+    assert.ok(env.notes.every((note) => note.html.includes("paper-reading-13-v2")));
+    assert.ok(env.logs.some((message) => message.includes(`provider=${scenario.provider}`)));
   });
 }
 
 test("Poixe with no key fails without using the saved DeepSeek key", { timeout: 2000 }, async (t) => {
-  const env = generation(t, { provider: "poixe", useSkill: false, missingKey: true });
+  const env = generation(t, { provider: "poixe", missingKey: true });
   await env.api.runForSelected(env.win);
   const result = await env.completed;
   assert.equal(result.failed, 2);
@@ -184,14 +176,26 @@ test("Poixe with no key fails without using the saved DeepSeek key", { timeout: 
 });
 
 test("new-item notifications generate guides with the same system and Poixe profile", { timeout: 2000 }, async (t) => {
-  const env = generation(t, { provider: "poixe", useSkill: true });
+  const env = generation(t, { provider: "poixe" });
   await env.observer.notify("add", "item", [1, 2]);
   await env.saved;
   assert.equal(env.notes.length, 2);
   assert.equal(env.requests.length, 2);
+  assert.equal(env.skillCalls(), 0);
   for (const request of env.requests) {
     assert.equal(request.body.messages[0].content, prompt.systemMessage("zh-CN"));
     assert.equal(request.url, "https://api.poixe.com/v1/chat/completions");
     assert.equal(request.headers.Authorization, "Bearer sk-poixe-test");
   }
+});
+
+test("a legacy short summary is rejected without saving or overwriting a guide", { timeout: 2000 }, async (t) => {
+  const env = generation(t, { provider: "poixe", invalidGuide: true });
+  await env.api.runForSelected(env.win);
+  const result = await env.completed;
+  assert.equal(result.failed, 2);
+  assert.equal(env.notes.length, 0);
+  assert.equal(env.requests.length, 2);
+  assert.ok(env.logs.some((message) => message.includes("required 13-section prompt")));
+  assert.ok(env.papers.every((paper) => paper.tags.includes("arch-note:failed")));
 });

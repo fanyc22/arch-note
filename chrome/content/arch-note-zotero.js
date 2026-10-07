@@ -23,7 +23,6 @@
     prompt: null,
     libraryScan: null,
     progress: null,
-    skillRunner: null,
     deepSeek: null,
     markdown: null,
     observerID: null,
@@ -133,19 +132,6 @@
       }
     }
     return attachments;
-  }
-
-  async function getFirstPdfPath(item) {
-    const attachments = await getPdfAttachments(item);
-    for (const attachment of attachments) {
-      if (attachment.getFilePathAsync) {
-        const path = await attachment.getFilePathAsync();
-        if (path) {
-          return path;
-        }
-      }
-    }
-    return "";
   }
 
   async function pathExists(path) {
@@ -283,68 +269,39 @@
     const model = String(getPref(provider.prefs.model, provider.model) || provider.model).trim();
     const metadata = collectMetadata(item);
     const system = state.prompt.systemMessage(language);
-    let messages;
-
-    if (getPref("useSkill", true)) {
-      try {
-        const paperPath = await getFirstPdfPath(item);
-        const paperText = paperPath ? "" : await collectPaperText(item);
-        const skillResult = await state.skillRunner.runSkillPrompt({
-          itemID: item.id,
-          command: getPref("skillCommand", "arch-note"),
-          dbPath: getPref("skillDbPath", ""),
-          format: "detailed",
-          style: "group_meeting",
-          topK: Number(getPref("skillTopK", 4)),
-          maxChars: Number(getPref("maxChars", 60000)),
-          timeoutSeconds: Number(getPref("skillTimeoutSeconds", 300)),
-          keepArtifacts: Boolean(getPref("keepSkillArtifacts", false)),
-          paperPath,
-          paperText,
-          metadata,
-          query: metadata.title
-        }, {
-          Zotero,
-          Components: typeof Components !== "undefined" ? Components : undefined,
-          IOUtils: typeof IOUtils !== "undefined" ? IOUtils : undefined,
-          OS: typeof OS !== "undefined" ? OS : undefined,
-          PathUtils: typeof PathUtils !== "undefined" ? PathUtils : undefined
-        });
-        messages = state.skillRunner.promptToMessages(skillResult.prompt, system);
-        log(`using arch-note skill prompt for item ${item.id}`);
-      } catch (error) {
-        if (!getPref("fallbackToInternalPrompt", true)) {
-          throw error;
-        }
-        log(`skill prompt failed for item ${item.id}; falling back to internal prompt: ${error.message}`);
-      }
-    }
-
-    if (!messages) {
-      const paperText = await collectPaperText(item);
-      const prompt = state.prompt.buildPaperPrompt({
-        metadata,
-        text: paperText,
-        maxChars: Number(getPref("maxChars", 60000))
-      });
-      messages = [
-        { role: "system", content: system },
-        { role: "user", content: prompt }
-      ];
-    }
+    const paperText = await collectPaperText(item);
+    const prompt = state.prompt.buildPaperPrompt({
+      metadata,
+      text: paperText,
+      maxChars: Number(getPref("maxChars", 60000))
+    });
+    const messages = [
+      { role: "system", content: system },
+      { role: "user", content: prompt }
+    ];
+    const baseUrl = getPref(provider.prefs.baseUrl, provider.baseUrl) || provider.baseUrl;
+    const endpoint = state.deepSeek.buildDeepSeekRequest({ provider: provider.id, apiKey, baseUrl, model }).url;
+    const diagnosticURL = new URL(endpoint);
+    const safeEndpoint = `${diagnosticURL.origin}${diagnosticURL.pathname}`;
+    log(`request item=${item.id} version=${state.version} provider=${provider.id} endpoint=${safeEndpoint} model=${model} prompt=${state.prompt.PROMPT_REVISION}`);
 
     const markdown = await state.deepSeek.complete({
       provider: provider.id,
       apiKey,
-      baseUrl: getPref(provider.prefs.baseUrl, provider.baseUrl) || provider.baseUrl,
+      baseUrl,
       model,
       messages,
       temperature: Number(getPref("temperature", 0.2)),
       maxTokens: Number(getPref("maxTokens", 16384))
     });
 
+    state.prompt.validateGuide(markdown);
     await saveReportNote(item, markdown, {
       title: `Arch Note 导读: ${metadata.title || "Untitled"}`,
+      provider: provider.label,
+      endpoint: safeEndpoint,
+      version: state.version,
+      promptRevision: state.prompt.PROMPT_REVISION,
       model,
       generatedAt: new Date().toISOString()
     });
@@ -795,7 +752,6 @@
       state.prompt = options.prompt;
       state.libraryScan = options.libraryScan;
       state.progress = options.progress;
-      state.skillRunner = options.skillRunner;
       state.deepSeek = options.deepSeek;
       state.markdown = options.markdown;
       state.observerID = Zotero.Notifier.registerObserver(observer, ["item"], state.pluginID);

@@ -3,27 +3,12 @@
       onload="ArchNotePrefs.init();"
       class="arch-note-preferences">
   <groupbox>
-    <caption label="Arch Note Zotero DeepSeek"/>
+    <caption label="Arch Note Zotero"/>
     <checkbox id="arch-note-enabled" label="Enable plugin"/>
     <checkbox id="arch-note-auto-run" label="Generate a guide automatically when new papers are added"/>
-    <checkbox id="arch-note-use-skill" label="Use arch-paper-reading-skill via arch-note CLI"/>
-    <checkbox id="arch-note-fallback-internal" label="Fall back to the built-in prompt if arch-note fails"/>
-    <checkbox id="arch-note-keep-artifacts" label="Keep temporary skill prompt files for debugging"/>
     <checkbox id="arch-note-force-index" label="Ask Zotero to index PDF text before generation"/>
 
     <html:div style="display: grid; grid-template-columns: 160px minmax(260px, 1fr); gap: 8px 12px; margin-top: 14px; align-items: center;">
-      <html:label for="arch-note-skill-command">arch-note command</html:label>
-      <html:input id="arch-note-skill-command" type="text"/>
-
-      <html:label for="arch-note-skill-db">Skill corpus DB</html:label>
-      <html:input id="arch-note-skill-db" type="text" placeholder="/path/to/data/indexes/arch_corpus.sqlite"/>
-
-      <html:label for="arch-note-skill-top-k">Skill top-k</html:label>
-      <html:input id="arch-note-skill-top-k" type="number" min="0" step="1"/>
-
-      <html:label for="arch-note-skill-timeout">Skill timeout seconds</html:label>
-      <html:input id="arch-note-skill-timeout" type="number" min="10" step="10"/>
-
       <html:label for="arch-note-provider">API provider</html:label>
       <html:select id="arch-note-provider" onchange="ArchNotePrefs.changeProvider();">
         <html:option value="deepseek">DeepSeek</html:option>

@@ -1,4 +1,4 @@
-# Arch Note Zotero DeepSeek
+# Arch Note Zotero
 
 [![CI](https://github.com/fanyc22/arch-note/actions/workflows/ci.yml/badge.svg)](https://github.com/fanyc22/arch-note/actions/workflows/ci.yml)
 [![Zotero](https://img.shields.io/badge/Zotero-8.0.1%20to%2010.*-CC2936)](https://www.zotero.org/)
@@ -6,7 +6,7 @@
 
 [English](README.md) | 中文
 
-Arch Note Zotero DeepSeek 是一个 Zotero 桌面插件，用于为论文生成详细导读 Markdown，并把导读作为 Zotero 子笔记附回对应条目。它可以调用本机 `arch-paper-reading-skill` 提供的 `arch-note` CLI 提取论文和检索上下文，再使用 DeepSeek 或 Poixe Chat Completions API 生成最终导读。
+Arch Note Zotero 是一个 Zotero 桌面插件，用于为论文生成详细导读 Markdown，并把导读作为 Zotero 子笔记附回对应条目。它直接读取 Zotero 已索引的 PDF 文本和条目 metadata，使用统一的 13 项 system prompt 调用 DeepSeek 或 Poixe Chat Completions API。
 
 这个插件面向体系结构论文阅读组、博士生文献阅读流程，以及希望每篇论文入库后自动获得结构化导读和 critique 的个人文献库。
 
@@ -14,9 +14,10 @@ Arch Note Zotero DeepSeek 是一个 Zotero 桌面插件，用于为论文生成�
 
 - 监听新加入 Zotero 的论文条目和 PDF 附件。
 - 在生成前等待 Zotero PDF 全文索引。
-- 可选调用本机 `arch-note` CLI。
 - 单篇、自动生成和批量补全统一使用 13 项深度导读 system prompt。
-- 当 skill CLI 失败时，可回退到 Zotero 已索引的论文文本。
+- 无需安装 Python、skill CLI 或 corpus 数据库。
+- 在保存前验证导读包含全部 13 项章节，格式错误时保留原笔记并报告失败。
+- 笔记标明实际服务商、模型、接口地址、插件版本和 prompt 版本。
 - 支持 DeepSeek 和 Poixe 转发 API，分别保存 API key、Base URL 和模型。
 - 把生成的 Markdown 写入 Zotero 子笔记。
 - 使用 `arch-note:done`、`arch-note:failed`、`arch-note:report` 标签标记状态。
@@ -52,7 +53,7 @@ npm run build
 生成文件位于：
 
 ```text
-dist/arch-note-zotero-deepseek-0.1.9.xpi
+dist/arch-note-zotero-deepseek-0.1.10.xpi
 ```
 
 ## 配置
@@ -69,14 +70,7 @@ Tools > Arch Note Zotero Settings
 | --- | --- |
 | Enable plugin | enabled |
 | Generate automatically when new papers are added | 按需开启 |
-| Use arch-paper-reading-skill via arch-note CLI | enabled |
-| Fall back to the built-in prompt if arch-note fails | enabled |
-| Keep temporary skill prompt files for debugging | disabled |
 | Ask Zotero to index PDF text before generation | enabled |
-| arch-note command | `arch-note` 的绝对路径 |
-| Skill corpus DB | `data/indexes/arch_corpus.sqlite` 的路径 |
-| Skill top-k | `4` |
-| Skill timeout seconds | `300` |
 | API provider | `DeepSeek` 或 `Poixe` |
 | API key | 所选服务商的 API key |
 | Base URL | `https://api.deepseek.com` |
@@ -96,36 +90,9 @@ Base URL 也可以填写 `https://api.poixe.com` 或完整的 `https://api.poixe
 
 升级后保留已有的 DeepSeek 配置和输出 token 设置；如果仍使用 `4096`，建议根据模型上限手动提高到 `16384`，给 13 项详细导读留出空间。
 
-## 使用 arch-paper-reading-skill
+## 论文输入
 
-先安装 skill CLI：
-
-```bash
-cd /path/to/arch-paper-reading-skill
-python3 -m pip install -e ".[dev]"
-arch-note --help
-```
-
-把 `arch-note command` 配置为下面命令输出的绝对路径：
-
-```bash
-which arch-note
-```
-
-启用 skill 集成后，插件会提取论文文本和 metadata，然后执行等价于下面的流程：
-
-```bash
-arch-note paper text paper.pdf --out paper.raw.txt
-arch-note prompt \
-  --paper paper.skill.txt \
-  --db /path/to/data/indexes/arch_corpus.sqlite \
-  --format detailed \
-  --style group_meeting \
-  --top-k 4 \
-  --out prompt.md
-```
-
-API 请求统一使用插件的 system prompt；`arch-note prompt` 的 `# USER` 部分提供论文摘录、factual anchors 和检索上下文。skill 自带的 `# SYSTEM` 和旧输出 schema 不再决定导读格式。插件固定用 `detailed` 和 `group_meeting` 获取 skill 上下文。
+插件直接读取论文条目的 metadata 和 PDF 全文缓存；开启索引选项时，会先要求 Zotero 索引 PDF。已有的 skill、风格和格式配置不再影响请求，不会调用外部 CLI。
 
 ## 使用方法
 
@@ -181,6 +148,8 @@ API 请求统一使用插件的 system prompt；`arch-note prompt` 的 `# USER` 
 
 插件当前没有联网搜索工具。第 12 项必须说明“未进行联网检索”，只分析输入中可核验的相关资料并列出待检索问题；第 13 项必须说明尚未验证的新颖性。配置 Poixe 不会自动提供搜索能力。
 
+输出小节使用 `## 1. 标题` 到 `## 13. 标题`。缺少小节、重复编号或返回旧式短摘要时，该任务会失败并保留原笔记。笔记顶部的服务商、接口地址和 prompt 版本可用于核对实际生成来源。
+
 ## 常见问题
 
 ### Tools 菜单没有插件入口
@@ -199,9 +168,9 @@ API 请求统一使用插件的 system prompt；`arch-note prompt` 的 `# USER` 
 
 检查所选 API provider 的 API key、Base URL、模型名、账户额度和网络连接。Poixe 的 key 和模型应来自 Poixe 控制台。
 
-### arch-note 失败
+### 升级后仍看到旧格式
 
-检查 `arch-note command` 的绝对路径和 corpus DB 路径。需要排查时可以临时开启 `Keep temporary skill prompt files for debugging`。
+关闭并重新打开 Zotero，选中目标论文，使用 `Tools > Generate Arch Note` 重新生成。批量补全只处理缺少导读的条目，不会改写已有导读。新笔记应显示 `Arch Note 0.1.10`、实际服务商和 `paper-reading-13-v2`。
 
 ## 开发
 
@@ -218,7 +187,6 @@ npm run build
 | `preferences.xhtml` | Zotero preference pane UI |
 | `preferences.js` | preference pane 控制器 |
 | `chrome/content/arch-note-zotero.js` | Zotero 条目、菜单、笔记和批量流程 |
-| `chrome/content/skill-runner.js` | `arch-note` CLI 集成 |
 | `chrome/content/deepseek-client.js` | DeepSeek / Poixe Chat Completions 客户端 |
 | `chrome/content/prompt.js` | 统一 system prompt 和论文输入上下文 |
 | `chrome/content/markdown.js` | Markdown 到 Zotero note HTML 转换 |

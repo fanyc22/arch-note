@@ -78,4 +78,6 @@ test("saved Poixe profile loads independently of the DeepSeek profile", () => {
   assert.equal(prefs.input("max-tokens").value, 16384);
   assert.equal(prefs.input("style"), undefined);
   assert.equal(prefs.input("skill-format"), undefined);
+  assert.equal(prefs.input("use-skill"), undefined);
+  assert.equal(prefs.input("skill-command"), undefined);
 });

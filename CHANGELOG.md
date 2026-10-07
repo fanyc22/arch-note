@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.10
+
+- Remove the local skill/CLI integration and its settings; read Zotero PDF text and metadata directly for every generation mode.
+- Bypass the subscript cache when loading runtime modules after an update.
+- Require all 13 numbered Markdown sections before saving a guide; invalid summaries leave existing notes untouched.
+- Identify the actual provider, model, API endpoint, plugin version, and prompt revision in generated notes.
+- Log request routing and prompt revision without credentials or paper contents.
+- Rename the displayed add-on to Arch Note Zotero while retaining its existing add-on ID and update URL.
+
 ## 0.1.9
 
 - Use one detailed, 13-section system prompt for selected papers, automatic generation, and both batch workflows, including skill prompts and fallback prompts.

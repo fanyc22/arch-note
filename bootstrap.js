@@ -47,6 +47,7 @@ function registerChrome(rootURI) {
 function loadScript(rootURI, name, scope) {
   ServicesRef.scriptloader.loadSubScriptWithOptions(`${rootURI}chrome/content/${name}`, {
     charset: "UTF-8",
+    ignoreCache: true,
     target: scope
   });
 }
@@ -85,7 +86,6 @@ async function startup({ id, version, rootURI, resourceURI }) {
     loadScript(rootURI, "prompt.js", pluginScope);
     loadScript(rootURI, "library-scan.js", pluginScope);
     loadScript(rootURI, "progress.js", pluginScope);
-    loadScript(rootURI, "skill-runner.js", pluginScope);
     loadScript(rootURI, "deepseek-client.js", pluginScope);
     loadScript(rootURI, "markdown.js", pluginScope);
     loadScript(rootURI, "arch-note-zotero.js", pluginScope);
@@ -97,7 +97,6 @@ async function startup({ id, version, rootURI, resourceURI }) {
       prompt: pluginScope.ArchNotePrompt,
       libraryScan: pluginScope.ArchNoteLibraryScan,
       progress: pluginScope.ArchNoteProgress,
-      skillRunner: pluginScope.ArchNoteSkillRunner,
       deepSeek: pluginScope.ArchNoteDeepSeek,
       markdown: pluginScope.ArchNoteMarkdown
     });
